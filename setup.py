@@ -19,7 +19,7 @@ setup(
     license='BSD',
     description='Support for many storages (S3, MogileFS, etc) in Django.',
     long_description=read('README.rst') + '\n\n' + read('CHANGELOG.rst'),
-    url='https://github.com/jschneier/django-storages',
+    url='https://github.com/robertavram/django-storages',
     classifiers=[
         'Framework :: Django',
         'Development Status :: 5 - Production/Stable',
