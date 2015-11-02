@@ -20,11 +20,10 @@ try:
     from azure.storage.blob.blobservice import BlobService
     from azure.common import AzureMissingResourceHttpError
 except ImportError:
-    from azure.storage import BlobService
+    from azure.storage import BlobService, AccessPolicy, SharedAccessPolicy
     from azure import WindowsAzureMissingResourceError as AzureMissingResourceHttpError
 
 from storages.utils import setting
-
 
 def clean_name(name):
     return os.path.normpath(name).replace("\\", "/")
@@ -35,6 +34,9 @@ class AzureStorage(Storage):
     account_key = setting("AZURE_ACCOUNT_KEY")
     azure_container = setting("AZURE_CONTAINER")
     azure_ssl = setting("AZURE_SSL")
+    auto_sign = setting("AZURE_AUTO_SIGN")
+    azure_access_policy_permission = setting("AZURE_ACCESS_POLICY_PERMISSION")
+    ap_expiry = setting("AZURE_ACCESS_POLICY_EXPIRY")
 
     def __init__(self, *args, **kwargs):
         super(AzureStorage, self).__init__(*args, **kwargs)
@@ -98,10 +100,25 @@ class AzureStorage(Storage):
 
     def url(self, name):
         if hasattr(self.connection, 'make_blob_url'):
+            if auto_sign:
+                access_policy = AccessPolicy()
+                access_policy.start = (datetime.utcnow() + datetime.timedelta(seconds=-120)).strftime('%Y-%m-%dT%H:%M:%SZ')
+                access_policy.expiry = (datetime.utcnow() + datetime.timedelta(seconds=ap_expiry)).strftime('%Y-%m-%dT%H:%M:%SZ')
+                access_policy.permission = azure_access_policy_permission
+                sap = SharedAccessPolicy(access_policy)
+                
+                sas_token = self.connection.generate_shared_access_signature(
+                    azure_container,
+                    blob_name=name,
+                    shared_access_policy=sap,
+                )
+            else:
+                sas_token = None
             return self.connection.make_blob_url(
                 container_name=self.azure_container,
                 blob_name=name,
                 protocol=self.azure_protocol,
+                sas_token=sas_token
             )
         else:
             return "{}{}/{}".format(setting('MEDIA_URL'), self.azure_container, name)
