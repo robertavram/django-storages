@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import os.path
 import mimetypes
 import time
@@ -19,6 +19,7 @@ try:
     # azure-storage 0.20.0
     from azure.storage.blob.blobservice import BlobService
     from azure.common import AzureMissingResourceHttpError
+    from azure.storage import AccessPolicy, SharedAccessPolicy
 except ImportError:
     from azure.storage import BlobService, AccessPolicy, SharedAccessPolicy
     from azure import WindowsAzureMissingResourceError as AzureMissingResourceHttpError
@@ -100,15 +101,15 @@ class AzureStorage(Storage):
 
     def url(self, name):
         if hasattr(self.connection, 'make_blob_url'):
-            if auto_sign:
+            if self.auto_sign:
                 access_policy = AccessPolicy()
-                access_policy.start = (datetime.utcnow() + datetime.timedelta(seconds=-120)).strftime('%Y-%m-%dT%H:%M:%SZ')
-                access_policy.expiry = (datetime.utcnow() + datetime.timedelta(seconds=ap_expiry)).strftime('%Y-%m-%dT%H:%M:%SZ')
-                access_policy.permission = azure_access_policy_permission
+                access_policy.start = (datetime.utcnow() + timedelta(seconds=-120)).strftime('%Y-%m-%dT%H:%M:%SZ')
+                access_policy.expiry = (datetime.utcnow() + timedelta(seconds=self.ap_expiry)).strftime('%Y-%m-%dT%H:%M:%SZ')
+                access_policy.permission = self.azure_access_policy_permission
                 sap = SharedAccessPolicy(access_policy)
                 
                 sas_token = self.connection.generate_shared_access_signature(
-                    azure_container,
+                    self.azure_container,
                     blob_name=name,
                     shared_access_policy=sap,
                 )
