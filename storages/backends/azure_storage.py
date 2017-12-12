@@ -117,7 +117,7 @@ class AzureStorage(Storage):
                 sas_token = None
             return self.connection.make_blob_url(
                 container_name=self.azure_container,
-                blob_name=name,
+                blob_name=name.encode('ascii', 'ignore'),
                 protocol=self.azure_protocol,
                 sas_token=sas_token
             )
