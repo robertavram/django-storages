@@ -107,7 +107,7 @@ class AzureStorage(Storage):
                 access_policy.expiry = (datetime.utcnow() + timedelta(seconds=self.ap_expiry)).strftime('%Y-%m-%dT%H:%M:%SZ')
                 access_policy.permission = self.azure_access_policy_permission
                 sap = SharedAccessPolicy(access_policy)
-                
+
                 sas_token = self.connection.generate_shared_access_signature(
                     self.azure_container,
                     blob_name=name,
@@ -117,7 +117,7 @@ class AzureStorage(Storage):
                 sas_token = None
             return self.connection.make_blob_url(
                 container_name=self.azure_container,
-                blob_name=name,
+                blob_name=name.encode("utf8"),
                 protocol=self.azure_protocol,
                 sas_token=sas_token
             )
