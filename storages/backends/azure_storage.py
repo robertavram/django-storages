@@ -1,30 +1,17 @@
 import mimetypes
 import os.path
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import mktime
 
-from django.core.exceptions import ImproperlyConfigured
+from azure.common import AzureMissingResourceHttpError
+from azure.storage import AccessPolicy, SharedAccessPolicy
+from azure.storage.blob.blobservice import BlobService
 from django.core.files.base import ContentFile
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
 
 from storages.utils import setting
-
-try:
-    import azure  # noqa
-except ImportError:
-    raise ImproperlyConfigured(
-        "Could not load Azure bindings. "
-        "See https://github.com/WindowsAzure/azure-sdk-for-python")
-
-try:
-    # azure-storage 0.20.0
-    from azure.storage.blob.blobservice import BlobService
-    from azure.common import AzureMissingResourceHttpError
-except ImportError:
-    from azure.storage import BlobService
-    from azure import WindowsAzureMissingResourceError as AzureMissingResourceHttpError
 
 
 def clean_name(name):
@@ -37,6 +24,10 @@ class AzureStorage(Storage):
     account_key = setting("AZURE_ACCOUNT_KEY")
     azure_container = setting("AZURE_CONTAINER")
     azure_ssl = setting("AZURE_SSL")
+
+    auto_sign = setting("AZURE_AUTO_SIGN")
+    azure_access_policy_permission = setting("AZURE_ACCESS_POLICY_PERMISSION")
+    ap_expiry = setting("AZURE_ACCESS_POLICY_EXPIRY")
 
     def __init__(self, *args, **kwargs):
         super(AzureStorage, self).__init__(*args, **kwargs)
@@ -100,10 +91,24 @@ class AzureStorage(Storage):
 
     def url(self, name):
         if hasattr(self.connection, 'make_blob_url'):
+            if self.auto_sign:
+                access_policy = AccessPolicy()
+                access_policy.start = (datetime.utcnow() + timedelta(seconds=-120)).strftime('%Y-%m-%dT%H:%M:%SZ')
+                access_policy.expiry = (datetime.utcnow() + timedelta(seconds=self.ap_expiry)).strftime('%Y-%m-%dT%H:%M:%SZ')
+                access_policy.permission = self.azure_access_policy_permission
+                sap = SharedAccessPolicy(access_policy)
+                sas_token = self.connection.generate_shared_access_signature(
+                    self.azure_container,
+                    blob_name=name.encode('utf-8'),
+                    shared_access_policy=sap,
+                )
+            else:
+                sas_token = None
             return self.connection.make_blob_url(
                 container_name=self.azure_container,
-                blob_name=name,
+                blob_name=name.encode('utf-8'),
                 protocol=self.azure_protocol,
+                sas_token=sas_token,
             )
         else:
             return "{}{}/{}".format(setting('MEDIA_URL'), self.azure_container, name)

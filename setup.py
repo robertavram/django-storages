@@ -22,7 +22,7 @@ setup(
     license='BSD',
     description='Support for many storage backends in Django',
     long_description=read('README.rst') + '\n\n' + read('CHANGELOG.rst'),
-    url='https://github.com/jschneier/django-storages',
+    url='https://github.com/robertavram/django-storages',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
