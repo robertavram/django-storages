@@ -11,7 +11,7 @@ def get_requirements_tests():
         return f.readlines()
 
 setup(
-    name='django-storages-redux',
+    name='django-storages',
     version=storages.__version__,
     packages=['storages', 'storages.backends'],
     author='Josh Schneier',
