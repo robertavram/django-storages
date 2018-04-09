@@ -99,7 +99,7 @@ class AzureStorage(Storage):
                 sap = SharedAccessPolicy(access_policy)
                 sas_token = self.connection.generate_shared_access_signature(
                     self.azure_container,
-                    blob_name=name.encode('utf-8'),
+                    blob_name=name,
                     shared_access_policy=sap,
                 )
             else:
